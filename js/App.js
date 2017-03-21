@@ -1,7 +1,12 @@
 import React from 'react'
 import alphabets from '../public/data/unicode_alphabets.min.json'
+import blocks from '../public/data/unicode_blocks.min.json'
 import { uniq } from 'lodash'
 
+/*
+Ä german
+Ó czech hungarian polish
+ */
 /* TODO - put in separate file */
 const charmap = {}
 const alphabetNames = Object.keys(alphabets)
@@ -12,7 +17,7 @@ const alphabetNameToId = alphabetNames.reduce((reducer, element, elementIndex) =
 
 alphabetNames.forEach((alphabetName) => {
   const alphabet = alphabets[alphabetName].letters
-  const alphabetInfo = { count: alphabet.length, upper_count: 0, lower_count: 0, cased: false, error: false, error_message: '' }
+  const alphabetInfo = { name: alphabetName, count: alphabet.length, upper_count: 0, lower_count: 0, cased: false, error: false, error_message: '', upper: [], lower: [] }
 
   alphabet.reduce((chmap, letter) => {
     const isUpper = letter.title.indexOf('Capital') !== -1
@@ -21,8 +26,12 @@ alphabetNames.forEach((alphabetName) => {
 
     if (isUpper) {
       ++alphabetInfo.upper_count
+      alphabetInfo.upper.push(letter.letter)
     } else if (isLower) {
       ++alphabetInfo.lower_count
+      alphabetInfo.lower.push(letter.letter)
+    } else {
+      alphabetInfo.upper.push(letter.letter)
     }
 
     const code = parseInt(letter.code.replace('U+', ''), 16) // int format
@@ -44,6 +53,7 @@ alphabetNames.forEach((alphabetName) => {
 
   alphabetInfos.push(alphabetInfo)
 })
+// console.log(alphabetInfos, alphabetNameToId)
 /* TODO end */
 
 const App = React.createClass({
@@ -105,8 +115,28 @@ const App = React.createClass({
       characters: chars
     })
   },
+  decompoundCharacters (chars) {
+    const meta = chars.split('').map((char) => {
+      return charmap[char.charCodeAt()]
+    })
 
+    meta.forEach((d, i) => {
+      if (d.languages.length === 1) {
+        const alp = alphabetInfos[d.languages[0]]
+        console.log(alp, alp.name)
+        meta.forEach((dd, ii) => {
+          if (i !== ii) {
+
+          }
+        })
+      } else {
+        console.log(d.title, d.languages)
+      }
+    })
+    console.log(meta, 'here')
+  },
   handleChange (event) {
+    this.decompoundCharacters(event.target.value)
     this.setCharactersList(this.identifyString(event.target.value))
     this.setLanguagesList(this.identifyStringLanguages(event.target.value))
   },
