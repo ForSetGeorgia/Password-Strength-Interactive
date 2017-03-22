@@ -1,60 +1,6 @@
 import React from 'react'
-import alphabets from '../public/data/unicode_alphabets.min.json'
-import blocks from '../public/data/unicode_blocks.min.json'
-import { uniq } from 'lodash'
-
-/*
-Ä german
-Ó czech hungarian polish
- */
-/* TODO - put in separate file */
-const charmap = {}
-const alphabetNames = Object.keys(alphabets)
-const alphabetInfos = []
-const alphabetNameToId = alphabetNames.reduce((reducer, element, elementIndex) => {
-  return Object.assign(reducer, { [element]: elementIndex })
-}, {})
-
-alphabetNames.forEach((alphabetName) => {
-  const alphabet = alphabets[alphabetName].letters
-  const alphabetInfo = { name: alphabetName, count: alphabet.length, upper_count: 0, lower_count: 0, cased: false, error: false, error_message: '', upper: [], lower: [] }
-
-  alphabet.reduce((chmap, letter) => {
-    const isUpper = letter.title.indexOf('Capital') !== -1
-    const isLower = letter.title.indexOf('Small') !== -1
-    const letterCase = isUpper ? 1 : isLower ? 2 : 0 // 0 - not cased, 1 - upper case, 2 - lower case
-
-    if (isUpper) {
-      ++alphabetInfo.upper_count
-      alphabetInfo.upper.push(letter.letter)
-    } else if (isLower) {
-      ++alphabetInfo.lower_count
-      alphabetInfo.lower.push(letter.letter)
-    } else {
-      alphabetInfo.upper.push(letter.letter)
-    }
-
-    const code = parseInt(letter.code.replace('U+', ''), 16) // int format
-    if (chmap.hasOwnProperty(code)) {
-      chmap[code].languages.push(alphabetNameToId[alphabetName])
-    } else {
-      chmap[code] = { languages: [alphabetNameToId[alphabetName]], case: letterCase, title: letter.title }
-    }
-    return chmap
-  }, charmap)
-
-  // if (alphabetInfo.lower_count !== alphabetInfo.upper_count) {
-  //   alphabetInfo.error = true
-  //   alphabetInfo.error_message = "Upper is not matching lower letters"
-  // }
-  if (alphabetInfo.lower_count > 0 || alphabetInfo.upper_count > 0) {
-    alphabetInfo.cased = true
-  }
-
-  alphabetInfos.push(alphabetInfo)
-})
-// console.log(alphabetInfos, alphabetNameToId)
-/* TODO end */
+import { letterMap } from './Alphabet'
+import { blockData, blockRanges } from './CharacterBlock'
 
 const App = React.createClass({
   getInitialState () {
@@ -63,7 +9,122 @@ const App = React.createClass({
       characters: []
     }
   },
-  getLanguageCaseInformation (info) {
+
+  getSymbolData (charCode) {
+    if (this.isCharacterSymbol(charCode)) {
+      let blockIndex = -1
+      blockRanges.forEach((r, ri) => {
+        if (charCode >= r[0] && charCode <= r[1]) {
+          blockIndex = ri
+        }
+      })
+      if (blockIndex !== -1) {
+        return blockData[blockIndex]
+      }
+    }
+
+    return { error: true, message: 'Probably symbol, replace error message when symbolMap is ready' }
+  },
+
+  isCharacterSymbol (charCode) {
+    const isSymbol = !this.isCharacterLetter(charCode) && blockRanges.filter((f) => {
+      return charCode >= f[0] && charCode <= f[1]
+    }).length > 0
+
+    if (!isSymbol) {
+      console.error('Neither letter nor symbol, this should not happen')
+    }
+    return isSymbol
+  },
+
+  isSymbolNumber (char) {
+    const charCode = char.charCodeAt()
+    return charCode >= 48 && charCode <= 57
+  },
+  getLetterData (charCode) {
+    return this.isCharacterLetter(charCode) ? letterMap[charCode] : { error: true, message: 'This should not happen!' }
+  },
+
+  isCharacterLetter (charCode) {
+    return letterMap.hasOwnProperty(charCode)
+  },
+
+  getCharacterData (char) {
+    const charCode = char.charCodeAt()
+    const isLetter = this.isCharacterLetter(charCode)
+    // console.log(char, this.isCharacterLetter(charCode), this.getLetterData(charCode))
+    return Object.assign({ char: char, isLetter: isLetter }, isLetter ? this.getLetterData(charCode) : this.getSymbolData(charCode))
+  },
+
+  decompoundCharacters (chars) { // Ä
+    const meta = chars.split('').map((char) => {
+      return Object.assign(
+        this.getCharacterData(char),
+        { processed: false }
+      )
+    })
+    // console.log(meta)
+    meta.forEach((d, i) => {
+      if (d.isLetter) {
+        if (d.languages.length === 1) {
+          d.processed = true
+          const alphabetIndex = d.languages[0]
+          meta.filter((f) => (!f.processed && f.isLetter)).forEach((dd, ii) => {
+            if (dd.languages.indexOf(alphabetIndex) !== -1) {
+              dd.processed = true
+              dd.binding = i
+            }
+          })
+        } else {
+          console.log('Letter from multiple languages(test if is in latin)', d.title, d.languages)
+        }
+      } else {
+        if (!d.error) {
+          d.processed = true
+          if (this.isSymbolNumber(d.char)) {
+            console.log('Symbol:Number from block:', d.name, '(', d.count, ')')
+          } else {
+            console.log('Symbol from block:', '(', d.name, d.count, ')')
+          }
+        } else {
+          console.log('Probably symbol but not found')
+        }
+      }
+    })
+
+    const tmp = meta.filter((f) => (!f.processed))
+    if (tmp.length > 0) {
+      console.log('Characters to process', tmp)
+    } else {
+      console.log('All characters processed')
+    }
+    // console.log(meta, 'here')
+  },
+  handleChange (event) {
+    console.log('------------------------')
+    this.decompoundCharacters(event.target.value)
+    // this.setCharactersList(this.identifyString(event.target.value))
+    // this.setLanguagesList(this.identifyStringLanguages(event.target.value))
+  },
+
+  render () {
+    return (
+      <div className='app'>
+        <input type='text' onChange={this.handleChange} />
+        <hr />
+        <label>Current letters:</label>
+        <ul>{this.state.characters.map((character) => <li key={character}>{character}</li>)}</ul>
+        <hr />
+        <label>All possible languages for current letters:</label>
+        <ul>{this.state.languages.map((language) => <li key={language}>{language}</li>)}</ul>
+      </div>
+    )
+  }
+})
+
+export default App
+
+/* getLanguageCaseInformation (info) {
     if (info.error) { return info.error_message }
     if (info.cased) {
       return `Upper: ${info.upper_count}, Lower: ${info.lower_count}`
@@ -75,7 +136,7 @@ const App = React.createClass({
     return `${alphabetNames[langId]} - ${this.getLanguageCaseInformation(alphabetInfos[langId])}`
   },
   identifyCharacterLanguages (character) {
-    return charmap[character.charCodeAt()].languages.map((element) => this.getLanguageInformation(element))
+    return letterMap[character.charCodeAt()].languages.map((element) => this.getLanguageInformation(element))
   },
   identifyStringLanguages (str) {
     return uniq(uniq(str.split('')).reduce((reducer, character) => {
@@ -101,7 +162,7 @@ const App = React.createClass({
     }
   },
   identifyCharacter (character) {
-    const characterInfo = charmap[character.charCodeAt()]
+    const characterInfo = letterMap[character.charCodeAt()]
 
     return `${characterInfo.title} - ${this.getCaseInformation(characterInfo.case)}`
   },
@@ -115,45 +176,4 @@ const App = React.createClass({
       characters: chars
     })
   },
-  decompoundCharacters (chars) {
-    const meta = chars.split('').map((char) => {
-      return charmap[char.charCodeAt()]
-    })
-
-    meta.forEach((d, i) => {
-      if (d.languages.length === 1) {
-        const alp = alphabetInfos[d.languages[0]]
-        console.log(alp, alp.name)
-        meta.forEach((dd, ii) => {
-          if (i !== ii) {
-
-          }
-        })
-      } else {
-        console.log(d.title, d.languages)
-      }
-    })
-    console.log(meta, 'here')
-  },
-  handleChange (event) {
-    this.decompoundCharacters(event.target.value)
-    this.setCharactersList(this.identifyString(event.target.value))
-    this.setLanguagesList(this.identifyStringLanguages(event.target.value))
-  },
-
-  render () {
-    return (
-      <div className='app'>
-        <input type='text' onChange={this.handleChange} />
-        <hr />
-        <label>Current letters:</label>
-        <ul>{this.state.characters.map((character) => <li key={character}>{character}</li>)}</ul>
-        <hr />
-        <label>All possible languages for current letters:</label>
-        <ul>{this.state.languages.map((language) => <li key={language}>{language}</li>)}</ul>
-      </div>
-    )
-  }
-})
-
-export default App
+*/

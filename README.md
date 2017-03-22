@@ -22,3 +22,19 @@ block should be without alphabets
 if not latin group than get alphabet with greater letter amount and sort alphabetically
 
 give ability to change language
+
+
+Ä german
+Ó czech hungarian polish
+
+case:
+0 letter
+1 upper
+2 lower
+
+00-1F(0-31) control
+20-7F(32-127) basic latin
+61-7A(97-122) lower
+41-5A(65-90) upper
+30-39(48-57) number
+80-FF(128-255) latin supplement
