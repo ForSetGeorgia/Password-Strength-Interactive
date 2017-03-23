@@ -1,5 +1,8 @@
 import React from 'react'
-import { letterMap } from './Alphabet'
+import './array'
+// import { findIndex }
+// var array = require('lodash/array');
+import { letterMap, alphabetInfos as alphabets } from './Alphabet'
 import { blockData, blockRanges } from './CharacterBlock'
 
 const App = React.createClass({
@@ -41,6 +44,20 @@ const App = React.createClass({
     const charCode = char.charCodeAt()
     return charCode >= 48 && charCode <= 57
   },
+
+  isSymbolMain (char) {
+    const charCode = char.charCodeAt()
+    return ((charCode >= 32 && charCode <= 47) ||
+      (charCode >= 58 && charCode <= 64) ||
+      (charCode >= 91 && charCode <= 96) ||
+      (charCode >= 123 && charCode <= 126))
+  },
+
+  isLetterLatin (char) {
+    latinAlphabetIndex = alphabets.
+    return
+  },
+
   getLetterData (charCode) {
     return this.isCharacterLetter(charCode) ? letterMap[charCode] : { error: true, message: 'This should not happen!' }
   },
@@ -75,8 +92,6 @@ const App = React.createClass({
               dd.binding = i
             }
           })
-        } else {
-          console.log('Letter from multiple languages(test if is in latin)', d.title, d.languages)
         }
       } else {
         if (!d.error) {
@@ -84,7 +99,12 @@ const App = React.createClass({
           if (this.isSymbolNumber(d.char)) {
             console.log('Symbol:Number from block:', d.name, '(', d.count, ')')
           } else {
-            console.log('Symbol from block:', '(', d.name, d.count, ')')
+            if (this.isSymbolMain(d.char)) {
+              console.log('Symbol:Main from block:', d.name, '(', d.count, ')')
+            }
+            else {
+              console.log('Symbol:Other from block:', '(', d.name, d.count, ')')
+            }
           }
         } else {
           console.log('Probably symbol but not found')
@@ -92,8 +112,17 @@ const App = React.createClass({
       }
     })
 
+
+    // const latinIndex = letterMap
+     console.log(alphabets);
     const tmp = meta.filter((f) => (!f.processed))
     if (tmp.length > 0) {
+      tmp.forEach((d, i) => {
+        if (d.isLetter) {
+
+        }
+      })
+       console.log('Check if latin');
       console.log('Characters to process', tmp)
     } else {
       console.log('All characters processed')

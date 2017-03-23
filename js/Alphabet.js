@@ -47,4 +47,4 @@ alphabetNames.forEach((alphabetName) => {
 })
 // console.log(alphabetInfos, alphabetNameToId)
 
-export { letterMap }
+export { letterMap, alphabetInfos }
