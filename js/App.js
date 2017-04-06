@@ -1,5 +1,7 @@
 import React from 'react'
-import './array'
+import CharacterBar from './CharacterBar'
+import StatsTable from './StatsTable'
+import './utilities/array'
 // import { findIndex }
 // var array = require('lodash/array');
 import { letterMap, alphabetInfos as alphabets } from './Alphabet'
@@ -8,6 +10,22 @@ import { blockData, blockRanges } from './CharacterBlock'
 const App = React.createClass({
   getInitialState () {
     return {
+      meta: {
+        latin: {
+          lower: [],
+          upper: [],
+          number: [],
+          symbol: []
+        },
+        other: {
+          letter: [],
+          lower: [],
+          upper: [],
+          symbol: []
+        },
+        length: 0,
+        depth: 36
+      },
       languages: [],
       characters: []
     }
@@ -54,8 +72,9 @@ const App = React.createClass({
   },
 
   isLetterLatin (char) {
-    latinAlphabetIndex = alphabets.
-    return
+    const charCode = char.charCodeAt()
+    const latinAlphabetIndex = alphabets.findIndex((f) => { return f.name === 'latin' })
+    return letterMap[charCode].languages.indexOf(latinAlphabetIndex) !== -1
   },
 
   getLetterData (charCode) {
@@ -97,13 +116,12 @@ const App = React.createClass({
         if (!d.error) {
           d.processed = true
           if (this.isSymbolNumber(d.char)) {
-            console.log('Symbol:Number from block:', d.name, '(', d.count, ')')
+            console.log(d.char, ' - symbol:number') // from block:', d.name, '(', d.count, ')')
           } else {
             if (this.isSymbolMain(d.char)) {
-              console.log('Symbol:Main from block:', d.name, '(', d.count, ')')
-            }
-            else {
-              console.log('Symbol:Other from block:', '(', d.name, d.count, ')')
+              console.log(d.char, ' - symbol:main') // from block:', d.name, '(', d.count, ')')
+            } else {
+              console.log(d.char, ' - symbol:other') // from block:', '(', d.name, d.count, ')')
             }
           }
         } else {
@@ -112,17 +130,23 @@ const App = React.createClass({
       }
     })
 
-
     // const latinIndex = letterMap
-     console.log(alphabets);
-    const tmp = meta.filter((f) => (!f.processed))
+    console.log(alphabets)
+    let tmp = meta.filter((f) => (!f.processed))
     if (tmp.length > 0) {
       tmp.forEach((d, i) => {
-        if (d.isLetter) {
-
+        if (d.isLetter && this.isLetterLatin(d.char)) {
+          d.processed = true
+          d.isLatin = true
+          console.log(d.char, ' - is latin')
+        } else {
+          console.log('is not latin, and multiple languages')
         }
       })
-       console.log('Check if latin');
+    }
+
+    tmp = meta.filter((f) => (!f.processed))
+    if (tmp.length > 0) {
       console.log('Characters to process', tmp)
     } else {
       console.log('All characters processed')
@@ -132,6 +156,10 @@ const App = React.createClass({
   handleChange (event) {
     console.log('------------------------')
     this.decompoundCharacters(event.target.value)
+
+    const meta = this.state.meta
+    meta.length = event.target.value.length
+    this.setState({ meta })
     // this.setCharactersList(this.identifyString(event.target.value))
     // this.setLanguagesList(this.identifyStringLanguages(event.target.value))
   },
@@ -141,19 +169,33 @@ const App = React.createClass({
       <div className='app'>
         <input type='text' onChange={this.handleChange} />
         <hr />
-        <label>Current letters:</label>
-        <ul>{this.state.characters.map((character) => <li key={character}>{character}</li>)}</ul>
-        <hr />
-        <label>All possible languages for current letters:</label>
-        <ul>{this.state.languages.map((language) => <li key={language}>{language}</li>)}</ul>
+        <CharacterBar meta={this.state.meta} />
+        <StatsTable meta={{length: this.state.meta.length, depth: this.state.meta.depth}} />
       </div>
     )
   }
 })
 
+// function mapStateToProps(state, ownProps) {
+//   return {
+//     user: state.users[ownProps.userId]
+//   };
+// }
+// module.exports = connect(mapStateToProps)(Profile);
+
+//  - {this.state.meta.other[item].length}
 export default App
 
-/* getLanguageCaseInformation (info) {
+/*
+
+  <hr />
+        <label>Current letters:</label>
+        <ul>{this.state.characters.map((character) => <li key={character}>{character}</li>)}</ul>
+        <hr />
+        <label>All possible languages for current letters:</label>
+        <ul>{this.state.languages.map((language) => <li key={language}>{language}</li>)}</ul>
+
+getLanguageCaseInformation (info) {
     if (info.error) { return info.error_message }
     if (info.cased) {
       return `Upper: ${info.upper_count}, Lower: ${info.lower_count}`
