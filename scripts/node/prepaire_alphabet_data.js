@@ -1,4 +1,5 @@
-import alphabets from '../public/data/unicode_alphabets.min.json'
+const alphabets = require('./data/unicode_alphabets.min.json')
+const fs = require('fs')
 
 const letterMap = {}
 const alphabetNames = Object.keys(alphabets)
@@ -35,16 +36,19 @@ alphabetNames.forEach((alphabetName) => {
     return chmap
   }, letterMap)
 
-  // if (alphabetInfo.lower_count !== alphabetInfo.upper_count) {
-  //   alphabetInfo.error = true
-  //   alphabetInfo.error_message = 'Upper is not matching lower letters'
-  // }
   if (alphabetInfo.lower_count > 0 || alphabetInfo.upper_count > 0) {
     alphabetInfo.cased = true
   }
 
   alphabetInfos.push(alphabetInfo)
 })
-// console.log(alphabetInfos, alphabetNameToId)
 
-export { letterMap, alphabetInfos }
+fs.writeFile('./output/letters_map.min.json', JSON.stringify(letterMap), function (err) {
+  if (err) { return console.log(err) }
+  console.log('The "letter_map.json" file was saved!')
+})
+
+fs.writeFile('./output/alpabets_info.min.json', JSON.stringify(alphabetInfos), function (err) {
+  if (err) { return console.log(err) }
+  console.log('The "alpabets_info.json" file was saved!')
+})
