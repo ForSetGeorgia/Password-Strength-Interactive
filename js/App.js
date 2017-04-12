@@ -30,12 +30,12 @@ const App = React.createClass({
   setMetaState (metaState) {
     if (metaState !== {}) {
       console.log('setMetaState')
+      this.setState({ metaState })
     } else {
       console.log('empty')
     }
     // const meta = this.state.meta
     // meta = metaState
-    // this.setState({ metaState })
   },
   handleChange (event) {
     // console.log('------------------------')

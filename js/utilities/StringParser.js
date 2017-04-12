@@ -21,8 +21,42 @@ const meta = {
     depth: 36
   }
 }
+function StringParserException (message) {
+  this.message = message
+  this.name = 'StringParserException'
+}
+const latinIndex = alphabets.findIndex((f) => { return f.name === 'latin' })
 
 const parser = {
+
+  isSymbolNumber: (charCode) => {
+    return charCode >= 48 && charCode <= 57
+  },
+
+  isSymbolMain: (charCode) => {
+    return ((charCode >= 32 && charCode <= 47) ||
+      (charCode >= 58 && charCode <= 64) ||
+      (charCode >= 91 && charCode <= 96) ||
+      (charCode >= 123 && charCode <= 126))
+  },
+
+  isLetterLatin: (charCode) => {
+    return letterMap[charCode].languages.indexOf(latinIndex) !== -1
+  },
+
+  isCharacterSymbol: (charCode) => {
+    if (this.isCharacterLetter(charCode)) {
+      throw new StringParserException('Symbol can\'t be letter! (isCharacterSymbol)')
+    }
+    const isSymbol = blockRanges.filter((f) => {
+      return charCode >= f[0] && charCode <= f[1]
+    }).length > 0
+
+    if (!isSymbol) {
+      throw new StringParserException('Neither letter nor symbol, this should not happen. (isCharacterSymbol)')
+    }
+    return isSymbol
+  },
 
   getSymbolData: (charCode) => {
     if (this.isCharacterSymbol(charCode)) {
@@ -30,6 +64,7 @@ const parser = {
       blockRanges.forEach((r, ri) => {
         if (charCode >= r[0] && charCode <= r[1]) {
           blockIndex = ri
+          return
         }
       })
       if (blockIndex !== -1) {
@@ -37,71 +72,42 @@ const parser = {
       }
     }
 
-    return { error: true, message: 'Probably symbol, replace error message when symbolMap is ready' }
-  },
-
-  isCharacterSymbol: (charCode) => {
-    const isSymbol = !this.isCharacterLetter(charCode) && blockRanges.filter((f) => {
-      return charCode >= f[0] && charCode <= f[1]
-    }).length > 0
-
-    if (!isSymbol) {
-      console.error('Neither letter nor symbol, this should not happen')
-    }
-    return isSymbol
-  },
-
-  isSymbolNumber: (char) => {
-    const charCode = char.charCodeAt()
-    return charCode >= 48 && charCode <= 57
-  },
-
-  isSymbolMain: (char) => {
-    const charCode = char.charCodeAt()
-    return ((charCode >= 32 && charCode <= 47) ||
-      (charCode >= 58 && charCode <= 64) ||
-      (charCode >= 91 && charCode <= 96) ||
-      (charCode >= 123 && charCode <= 126))
-  },
-
-  isLetterLatin: (char) => {
-    const charCode = char.charCodeAt()
-    const latinAlphabetIndex = alphabets.findIndex((f) => { return f.name === 'latin' })
-    return letterMap[charCode].languages.indexOf(latinAlphabetIndex) !== -1
+    throw new StringParserException('Probably symbol, replace error message when symbolMap is ready. (isCharacterSymbol)')
   },
 
   getLetterData: (charCode) => {
-    return this.isCharacterLetter(charCode) ? letterMap[charCode] : { error: true, message: 'This should not happen!' }
+    if (!this.isCharacterLetter(charCode)) throw new StringParserException('This should not happen! (getLetterData: character is not a letter' + charCode + ')')
+    return letterMap[charCode]
   },
 
   isCharacterLetter: (charCode) => {
     return letterMap.hasOwnProperty(charCode)
   },
 
-  getCharacterData: (char) => {
-    const charCode = char.charCodeAt()
+  getCharacterData: (charCode) => {
     const isLetter = this.isCharacterLetter(charCode)
-    // console.log(char, this.isCharacterLetter(charCode), this.getLetterData(charCode))
-    return Object.assign({ char: char, isLetter: isLetter }, isLetter ? this.getLetterData(charCode) : this.getSymbolData(charCode))
+    return Object.assign({ isLetter: isLetter }, isLetter ? this.getLetterData(charCode) : this.getSymbolData(charCode))
   },
 
-  decompoundCharacters: (chars) => { // Ä
-    console.log('parseString')//, parser)
-    return { indecompound: true }
-    /*
-    const meta = chars.split('').map((char) => {
+  decompoundString: (string) => { // Ä
+    const chars = string.split('').map((char) => {
+      const code = char.charCodeAt()
       return Object.assign(
-        this.getCharacterData(char),
-        { processed: false }
+        {
+          char: char,
+          code: code,
+          processed: false
+        },
+        this.getCharacterData(code)
       )
     })
-    // console.log(meta)
-    meta.forEach((d, i) => {
+
+    chars.forEach((d, i) => {
       if (d.isLetter) {
         if (d.languages.length === 1) {
           d.processed = true
           const alphabetIndex = d.languages[0]
-          meta.filter((f) => (!f.processed && f.isLetter)).forEach((dd, ii) => {
+          chars.filter((f) => (!f.processed && f.isLetter)).forEach((dd, ii) => {
             if (dd.languages.indexOf(alphabetIndex) !== -1) {
               dd.processed = true
               dd.binding = i
@@ -109,26 +115,26 @@ const parser = {
           })
         }
       } else {
-        if (!d.error) {
-          d.processed = true
-          if (this.isSymbolNumber(d.char)) {
-            console.log(d.char, ' - symbol:number') // from block:', d.name, '(', d.count, ')')
-          } else {
-            if (this.isSymbolMain(d.char)) {
-              console.log(d.char, ' - symbol:main') // from block:', d.name, '(', d.count, ')')
-            } else {
-              console.log(d.char, ' - symbol:other') // from block:', '(', d.name, d.count, ')')
-            }
-          }
+        // if (!d.error) {
+        d.processed = true
+        if (this.isSymbolNumber(d.code)) {
+          console.log(d.char, ' - symbol:number') // from block:', d.name, '(', d.count, ')')
         } else {
-          console.log('Probably symbol but not found')
+          if (this.isSymbolMain(d.code)) {
+            console.log(d.char, ' - symbol:main') // from block:', d.name, '(', d.count, ')')
+          } else {
+            console.log(d.char, ' - symbol:other') // from block:', '(', d.name, d.count, ')')
+          }
         }
+        // } else {
+        //   console.log('Probably symbol but not found')
+        // }
       }
     })
 
     // const latinIndex = letterMap
     // console.log(alphabets)
-    let tmp = meta.filter((f) => (!f.processed))
+    let tmp = chars.filter((f) => (!f.processed))
     if (tmp.length > 0) {
       tmp.forEach((d, i) => {
         if (d.isLetter && this.isLetterLatin(d.char)) {
@@ -141,21 +147,23 @@ const parser = {
       })
     }
 
-    tmp = meta.filter((f) => (!f.processed))
+    tmp = chars.filter((f) => (!f.processed))
     if (tmp.length > 0) {
-      console.log('Characters to process', tmp)
+      throw new StringParserException('Characters to process ' + JSON.stringify(tmp))
     } else {
+      return { length: string.length, depth: chars.length }
+      TODO return whole meta block with all filled data
       console.log('All characters processed')
     }
-    // console.log(meta, 'here') */
   }
-
 }
 
 module.exports = {
   parseString: (v) => {
-    if (typeof v === 'undefined') { return {} }
-    return parser.decompoundCharacters(v)
+    if (typeof v !== 'string') {
+      v = ''
+    }
+    return parser.decompoundString(v)
   }
 }
 
