@@ -3,6 +3,7 @@ import alphabets from '../../public/data/alpabets_info.min.json'
 import blockData from '../../public/data/unicode_block_data.min.json'
 import blockRanges from '../../public/data/unicode_block_ranges.min.json'
 
+const SYMBOL_TYPE = { number: 0, main: 1, other: 9}
 const meta = {
   meta: {
     latin: {
@@ -45,7 +46,7 @@ const parser = {
   },
 
   isCharacterSymbol: (charCode) => {
-    if (this.isCharacterLetter(charCode)) {
+    if (parser.isCharacterLetter(charCode)) {
       throw new StringParserException('Symbol can\'t be letter! (isCharacterSymbol)')
     }
     const isSymbol = blockRanges.filter((f) => {
@@ -59,7 +60,7 @@ const parser = {
   },
 
   getSymbolData: (charCode) => {
-    if (this.isCharacterSymbol(charCode)) {
+    if (parser.isCharacterSymbol(charCode)) {
       let blockIndex = -1
       blockRanges.forEach((r, ri) => {
         if (charCode >= r[0] && charCode <= r[1]) {
@@ -76,7 +77,7 @@ const parser = {
   },
 
   getLetterData: (charCode) => {
-    if (!this.isCharacterLetter(charCode)) throw new StringParserException('This should not happen! (getLetterData: character is not a letter' + charCode + ')')
+    if (!parser.isCharacterLetter(charCode)) throw new StringParserException('This should not happen! (getLetterData: character is not a letter' + charCode + ')')
     return letterMap[charCode]
   },
 
@@ -85,8 +86,8 @@ const parser = {
   },
 
   getCharacterData: (charCode) => {
-    const isLetter = this.isCharacterLetter(charCode)
-    return Object.assign({ isLetter: isLetter }, isLetter ? this.getLetterData(charCode) : this.getSymbolData(charCode))
+    const isLetter = parser.isCharacterLetter(charCode)
+    return Object.assign({ isLetter: isLetter }, isLetter ? parser.getLetterData(charCode) : parser.getSymbolData(charCode))
   },
 
   decompoundString: (string) => { // Ä
@@ -96,39 +97,47 @@ const parser = {
         {
           char: char,
           code: code,
-          processed: false
+          processed: false,
+          isSymbol: false,
+          symbolType: 0
+          // isNumber - 1
+          // isMain - 2
+          // isOther - 9
         },
-        this.getCharacterData(code)
+        parser.getCharacterData(code)
       )
     })
-
     chars.forEach((d, i) => {
       if (d.isLetter) {
         if (d.languages.length === 1) {
           d.processed = true
           const alphabetIndex = d.languages[0]
           chars.filter((f) => (!f.processed && f.isLetter)).forEach((dd, ii) => {
+          // cyrilic if letter present only in one of lang and than we
+          // choose letter from cyrilic but it can be in multiple we treat it as first lang
+
             if (dd.languages.indexOf(alphabetIndex) !== -1) {
               dd.processed = true
               dd.binding = i
+              dd.possible_languages = dd.languages.length
             }
           })
         }
       } else {
         // if (!d.error) {
         d.processed = true
-        if (this.isSymbolNumber(d.code)) {
-          console.log(d.char, ' - symbol:number') // from block:', d.name, '(', d.count, ')')
+        d.isSymbol = true
+
+        if (parser.isSymbolNumber(d.code)) {
+          d.symbolType = SYMBOL_TYPE['number']
+          console.log(d.char, ' - symbol:number')
+        } else if (parser.isSymbolMain(d.code)) {
+          d.symbolType = SYMBOL_TYPE['main']
+          console.log(d.char, ' - symbol:main') // block of main symbols, look at isSymbolMain
         } else {
-          if (this.isSymbolMain(d.code)) {
-            console.log(d.char, ' - symbol:main') // from block:', d.name, '(', d.count, ')')
-          } else {
-            console.log(d.char, ' - symbol:other') // from block:', '(', d.name, d.count, ')')
-          }
+          d.symbolType = SYMBOL_TYPE['other']
+          console.log(d.char, ' - symbol:other') // other than number and main block symbol
         }
-        // } else {
-        //   console.log('Probably symbol but not found')
-        // }
       }
     })
 
@@ -137,7 +146,8 @@ const parser = {
     let tmp = chars.filter((f) => (!f.processed))
     if (tmp.length > 0) {
       tmp.forEach((d, i) => {
-        if (d.isLetter && this.isLetterLatin(d.char)) {
+        console.log(d.char)
+        if (d.isLetter && parser.isLetterLatin(d.code)) {
           d.processed = true
           d.isLatin = true
           console.log(d.char, ' - is latin')
@@ -152,8 +162,8 @@ const parser = {
       throw new StringParserException('Characters to process ' + JSON.stringify(tmp))
     } else {
       return { length: string.length, depth: chars.length }
-      TODO return whole meta block with all filled data
-      console.log('All characters processed')
+      // TODO return whole meta block with all filled data
+      console.log('All characters processed', chars)
     }
   }
 }

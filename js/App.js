@@ -27,6 +27,9 @@ const App = React.createClass({
       characters: []
     }
   },
+  componentDidMount () {
+    parseString('a1')
+  },
   setMetaState (metaState) {
     if (metaState !== {}) {
       console.log('setMetaState')
