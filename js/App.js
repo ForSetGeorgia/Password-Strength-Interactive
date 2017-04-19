@@ -47,10 +47,20 @@ const App = React.createClass({
   render () {
     return (
       <div className='app'>
-        <input type='text' onChange={this.handleChange} />
-        <hr />
-        <StringInfo meta={this.state.meta} />
-        <StatsTable meta={{length: this.state.meta.length, depth: this.state.meta.depth}} />
+        <nav>
+          <a href="/" className="nav-brand">
+            <img src="public/assets/logo.svg" width="48" height="48" />
+            Password Strength Interactive
+          </a>
+        </nav>
+        <main>
+          <div className='password-input'>
+            <label for='password-input'>Hammer Strongpassword Game</label>
+            <input type='text' name='password-input' placeholder='Type password' onChange={this.handleChange} />
+          </div>
+          <StringInfo meta={this.state.meta} />
+          <StatsTable meta={{length: this.state.meta.length, depth: this.state.meta.depth}} />
+        </main>
       </div>
     )
   }
