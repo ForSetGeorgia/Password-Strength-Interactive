@@ -1,0 +1,10 @@
+[
+  {
+    "id": "app.second_name",
+    "defaultMessage": "Hammer Strongpassword Game"
+  },
+  {
+    "id": "app.name",
+    "defaultMessage": "Password Strength Interactive"
+  }
+]

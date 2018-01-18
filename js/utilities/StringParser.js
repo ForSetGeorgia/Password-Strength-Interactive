@@ -3,25 +3,25 @@ import alphabets from '../../public/data/alpabets_info.min.json'
 import blockData from '../../public/data/unicode_block_data.min.json'
 import blockRanges from '../../public/data/unicode_block_ranges.min.json'
 
-const SYMBOL_TYPE = { number: 0, main: 1, other: 9}
-const meta = {
-  meta: {
-    latin: {
-      lower: [],
-      upper: [],
-      number: [],
-      symbol: []
-    },
-    other: {
-      letter: [],
-      lower: [],
-      upper: [],
-      symbol: []
-    },
-    length: 0,
-    depth: 36
-  }
-}
+const SYMBOL_TYPE = { number: 0, main: 1, other: 9 }
+// const meta = {
+//   meta: {
+//     latin: {
+//       lower: [],
+//       upper: [],
+//       number: [],
+//       symbol: []
+//     },
+//     other: {
+//       letter: [],
+//       lower: [],
+//       upper: [],
+//       symbol: []
+//     },
+//     length: 0,
+//     depth: 36
+//   }
+// }
 function StringParserException (message) {
   this.message = message
   this.name = 'StringParserException'
@@ -163,7 +163,7 @@ const parser = {
     } else {
       return { length: string.length, depth: chars.length }
       // TODO return whole meta block with all filled data
-      console.log('All characters processed', chars)
+      // console.log('All characters processed', chars)
     }
   }
 }
